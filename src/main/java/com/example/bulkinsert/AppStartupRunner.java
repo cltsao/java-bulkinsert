@@ -9,8 +9,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AppStartupRunner implements ApplicationRunner {
-    private static final Logger logger = LoggerFactory.getLogger(AppStartupRunner.class);
-
     @Autowired BulkInserter bulkInserter;
 
     @Override
