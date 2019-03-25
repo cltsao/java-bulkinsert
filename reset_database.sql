@@ -16,3 +16,7 @@ CREATE TABLE [TestDatabase].[dbo].[inventory]
 );
 
 SELECT name, is_not_trusted FROM [TestDatabase].[sys].[foreign_keys];
+
+SELECT count(product_id) as count, max(product_id) as lastId from [TestDatabase].[dbo].[products];
+
+DELETE from [TestDatabase].[dbo].[products];
