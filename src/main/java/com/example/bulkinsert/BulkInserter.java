@@ -49,6 +49,7 @@ public class BulkInserter {
             writer.write(", " + productName);
             writer.newLine();
         }
+        // writer.write(", 1234567890123456789012345678901234567890123456789012345678901234567890"); // Test invalid data
         writer.flush();
     }
 
@@ -64,6 +65,9 @@ public class BulkInserter {
 
         // This is crucial to get good performance
         copyOptions.setTableLock(true);
+
+        // By default, batch size is 0, which means no record is written if any one fails.
+        copyOptions.setBatchSize(10000);
 
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection);
         bulkCopy.setBulkCopyOptions(copyOptions);
