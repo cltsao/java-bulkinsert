@@ -116,6 +116,9 @@ public class BulkInserter {
         bulkCopy.writeToServer(fileRecord);
     }
 
+    /**
+     * Need to distinguish exception when inserting device datalogs or sensor datalogs, then notify the data consumer to fall back to original data pineline only for the failed dataset to avoid duplication.
+     */
     public void send(Collection<DeviceDatalog> deviceDatalogs) throws Exception {
         generateDeviceDatalogCsv("deviceDatalog.csv", deviceDatalogs);
         bulkInsertDeviceDatalogs(connection,"deviceDatalog.csv", "FOG_DeviceDatalogRecord");

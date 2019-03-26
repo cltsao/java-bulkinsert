@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -65,9 +66,9 @@ public class DataProducer {
     public void start() throws Exception {
         loadData();
         datalogConsumer.init();
-        deviceDatalogs.forEach((deviceDatalogId, deviceDatalog) -> {
-            datalogConsumer.consume(deviceDatalog);
-        });
+        for(String deviceDatalogId : deviceDatalogs.keySet()) {
+            datalogConsumer.consume(deviceDatalogs.get(deviceDatalogId));
+        }
         datalogConsumer.flush();
     }
 }
