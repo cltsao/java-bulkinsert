@@ -3,9 +3,7 @@ package com.example.bulkinsert.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeviceDatalog {
-    String[] fields;
-
+public class DeviceDatalog extends DatalogBase {
     List<SensorDatalog> sensorDatalogs = new ArrayList<SensorDatalog>();
 
     /**
@@ -14,22 +12,22 @@ public class DeviceDatalog {
     public static DeviceDatalog parseData(String row) {
         DeviceDatalog deviceDatalog = new DeviceDatalog();
         deviceDatalog.fields = row.split(",", 6);
+        deviceDatalog.replaceNulls();
         return deviceDatalog;
-    }
-
-    public void setId(String id) {
-        fields[0] = id;
     }
 
     public String getId() {
         return fields[0];
     }
 
-    public void addSensorDatalog(SensorDatalog sensorDatalog) {
-        sensorDatalogs.add(sensorDatalog);
+    public void setId(String id) {
+        fields[0] = id;
+        for(SensorDatalog sensorDatalog : sensorDatalogs) {
+            sensorDatalog.setDeviceDatalogId(id);
+        }
     }
 
-    public String toCsvString() {
-        return String.join(",", fields);
+    public void addSensorDatalog(SensorDatalog sensorDatalog) {
+        sensorDatalogs.add(sensorDatalog);
     }
 }

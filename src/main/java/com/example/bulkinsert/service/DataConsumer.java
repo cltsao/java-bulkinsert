@@ -31,6 +31,12 @@ public class DataConsumer {
      * Send datalogs using bulk insert.
      */
     private void sendDatalogs() {
+        try {
+            bulkInserter.send(queue);
+        } catch (Exception ex) {
+            logger.warn("Error in sending datalogs: ", ex);
+            onError();
+        }
         queue.clear();
     }
 
@@ -38,6 +44,7 @@ public class DataConsumer {
      * Placeholder when error occurs in bulk insert. Fall back to the existing data pipeline.
      */
     private void onError() {
+        logger.warn("Error in sending " + queue.size() + " datalogs");
         queue.clear();
     }
 
@@ -63,6 +70,6 @@ public class DataConsumer {
 
         long endTime = System.currentTimeMillis();
         long totalTime = endTime - startTime;
-        logger.info("Total time of bulk insert with batch size" + batchSize + ": " + totalTime + "ms");
+        logger.info("Total time of bulk insert with batch size " + batchSize + ": " + totalTime + "ms");
     }
 }

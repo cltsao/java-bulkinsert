@@ -1,5 +1,6 @@
-package com.example.bulkinsert;
+package com.example.bulkinsert.service;
 
+import com.example.bulkinsert.model.DeviceDatalog;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
@@ -13,10 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Collection;
+import java.util.Queue;
 
 @Component
 public class BulkInserter {
@@ -33,7 +33,7 @@ public class BulkInserter {
     @Value("${database.password}")
     private String databasePassword;
 
-    private void connect() throws Exception {
+    public void init() throws Exception {
         Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         connection = DriverManager.getConnection(databaseUrl, databaseUsername, databasePassword);
     }
@@ -52,32 +52,28 @@ public class BulkInserter {
         return 0;
     }
 
-    private void generateProductCsv(String fileName, int numProducts) throws Exception {
+    private void generateDeviceDatalogCsv(String fileName, Collection<DeviceDatalog> deviceDatalogs) throws Exception {
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-        for (int i = 0; i < numProducts; ++i) {
-            String productName = RandomStringUtils.randomAlphabetic(10);
-            writer.write(", " + productName);
+        for(DeviceDatalog deviceDatalog : deviceDatalogs) {
+            writer.write(deviceDatalog.toCsvString());
             writer.newLine();
         }
-        // writer.write(", 1234567890123456789012345678901234567890123456789012345678901234567890"); // Test invalid data
         writer.flush();
     }
 
     // Sample code from https://stackoverflow.com/questions/40471004/can-i-get-bulk-insert-like-speeds-when-inserting-from-java-into-sql-server
     private void bulkInsertProductsCsv(Connection connection, String fileName, String tableName) throws Exception {
         SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, false);
-        fileRecord.addColumnMetadata(1, null, java.sql.Types.INTEGER, 0, 0);
-        fileRecord.addColumnMetadata(2, null, java.sql.Types.NVARCHAR, 50, 0);
+        fileRecord.addColumnMetadata(1, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(2, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(3, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(4, null, Types.DATE, 0, 0);
+        fileRecord.addColumnMetadata(5, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(6, null, Types.VARBINARY, 0, 0);
         SQLServerBulkCopyOptions copyOptions = new SQLServerBulkCopyOptions();
-
-        // Depending on the size of the data being uploaded, and the amount of RAM, an optimum can be found here. Play around with this to improve performance.
-        copyOptions.setBatchSize(300000);
 
         // This is crucial to get good performance
         copyOptions.setTableLock(true);
-
-        // By default, batch size is 0, which means no record is written if any one fails.
-        copyOptions.setBatchSize(10000);
 
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection);
         bulkCopy.setBulkCopyOptions(copyOptions);
@@ -116,20 +112,12 @@ public class BulkInserter {
         bulkCopy.writeToServer(fileRecord);
     }
 
-    public void run() throws Exception {
-        connect();
-        long startTime = System.currentTimeMillis();
-        int numProducts = 100000;
-        int numInventoryPerProduct = 10;
-        generateProductCsv("products.csv", numProducts);
-        bulkInsertProductsCsv(connection,"products.csv", "products");
-        int lastPk = getLastPK("products", "product_id");
-        logger.info("Product PK: from " + (lastPk - numProducts + 1) + " to " + lastPk);
-        generateInventoryCsv("inventory.csv", (lastPk - numProducts + 1), numProducts, numInventoryPerProduct);
-        bulkInsertInventoryCsv(connection, "inventory.csv", "inventory");
-        long endTime = System.currentTimeMillis();
-        long totalTime = endTime - startTime;
-        int numRecords = numProducts * (1 + numInventoryPerProduct);
-        logger.info("Time to generate and insert " + numRecords + " records: " + totalTime + "ms");
+    public void send(Collection<DeviceDatalog> deviceDatalogs) throws Exception {
+        generateDeviceDatalogCsv("deviceDatalog.csv", deviceDatalogs);
+        bulkInsertProductsCsv(connection,"deviceDatalog.csv", "FOG_DeviceDatalogRecord");
+        int lastPk = getLastPK("FOG_DeviceDatalogRecord", "ID");
+        logger.info("Product PK: from " + (lastPk - deviceDatalogs.size() + 1) + " to " + lastPk);
+        /*generateInventoryCsv("inventory.csv", (lastPk - numProducts + 1), numProducts, numInventoryPerProduct);
+        bulkInsertInventoryCsv(connection, "inventory.csv", "inventory");*/
     }
 }
