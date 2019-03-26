@@ -29,21 +29,25 @@ public class DataConsumer {
      * Send datalogs using bulk insert.
      */
     private void sendDatalogs() {
-        try {
-            bulkInserter.send(queue);
-        } catch (Exception ex) {
-            logger.warn("Error in sending datalogs: ", ex);
-            onError();
-        }
+        BulkInserter.Result result = bulkInserter.send(queue);
+        if (result != BulkInserter.Result.SUCCESS)
+            onError(result);
         queue.clear();
     }
 
     /**
      * Placeholder when error occurs in bulk insert. Fall back to the existing data pipeline.
      */
-    private void onError() {
-        logger.warn("Error in sending " + queue.peek() + " device datalogs starting from " + queue.peek().getId());
-        queue.clear();
+    private void onError(BulkInserter.Result result) {
+        logger.warn("Error in sending " + queue.size() + " device datalogs starting from " + queue.peek().getId() + ": " + result);
+        switch(result) {
+            case DEVICE_DATALOG_FAILED:
+                logger.warn("Send device datalogs and sensor datalogs using existing data pipeline");
+                break;
+            case SENSOR_DATALOG_FAILED:
+                logger.warn("Send sensor datalogs using existing data pipeline");
+                break;
+        }
     }
 
     private long startTime;

@@ -18,6 +18,12 @@ import java.util.Collection;
 
 @Component
 public class BulkInserter {
+    public enum Result {
+        SUCCESS,
+        DEVICE_DATALOG_FAILED,
+        SENSOR_DATALOG_FAILED
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(BulkInserter.class);
 
     private Connection connection;
@@ -104,9 +110,6 @@ public class BulkInserter {
         fileRecord.addColumnMetadata(7, null, Types.VARBINARY, 0, 0);
         SQLServerBulkCopyOptions copyOptions = new SQLServerBulkCopyOptions();
 
-        // Depending on the size of the data being uploaded, and the amount of RAM, an optimum can be found here. Play around with this to improve performance.
-        copyOptions.setBatchSize(300000);
-
         // This is crucial to get good performance
         copyOptions.setTableLock(true);
 
@@ -119,11 +122,22 @@ public class BulkInserter {
     /**
      * Need to distinguish exception when inserting device datalogs or sensor datalogs, then notify the data consumer to fall back to original data pineline only for the failed dataset to avoid duplication.
      */
-    public void send(Collection<DeviceDatalog> deviceDatalogs) throws Exception {
-        generateDeviceDatalogCsv("deviceDatalog.csv", deviceDatalogs);
-        bulkInsertDeviceDatalogs(connection,"deviceDatalog.csv", "FOG_DeviceDatalogRecord");
-        int lastPk = getLastPK("FOG_DeviceDatalogRecord", "ID");
-        generateSensorDatalog("sensorDatalog.csv", (lastPk - deviceDatalogs.size() + 1), deviceDatalogs);
-        bulkInsertSensorDatalogs(connection, "sensorDatalog.csv", "FOG_SensorDatalogRecord");
+    public Result send(Collection<DeviceDatalog> deviceDatalogs) {
+        try {
+            generateDeviceDatalogCsv("deviceDatalog.csv", deviceDatalogs);
+            bulkInsertDeviceDatalogs(connection, "deviceDatalog.csv", "FOG_DeviceDatalogRecord");
+        } catch (Exception ex) {
+            logger.warn("Bulk insert of device datalog failed", ex);
+            return Result.DEVICE_DATALOG_FAILED;
+        }
+        try {
+            int lastPk = getLastPK("FOG_DeviceDatalogRecord", "ID");
+            generateSensorDatalog("sensorDatalog.csv", (lastPk - deviceDatalogs.size() + 1), deviceDatalogs);
+            bulkInsertSensorDatalogs(connection, "sensorDatalog.csv", "FOG_SensorDatalogRecord");
+        } catch (Exception ex) {
+            logger.warn("Bulk insert of sensor datalog failed", ex);
+            return Result.SENSOR_DATALOG_FAILED;
+        }
+        return Result.SUCCESS;
     }
 }
