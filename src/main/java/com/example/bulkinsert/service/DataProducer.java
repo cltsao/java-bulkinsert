@@ -41,13 +41,13 @@ public class DataProducer {
         int countSensorDatalogs = 0;
         try (BufferedReader deviceReader = new BufferedReader(new FileReader(deviceDataInput));
              BufferedReader sensorReader = new BufferedReader(new FileReader(sensorDataInput))) {
-            String deviceData;
+            String deviceData = deviceReader.readLine();  // Ignore header row
             while ((deviceData = deviceReader.readLine()) != null && !StringUtils.isBlank(deviceData)) {
                 DeviceDatalog deviceDatalog = DeviceDatalog.parseData(deviceData);
                 deviceDatalogs.put(deviceDatalog.getId(), deviceDatalog);
             }
 
-            String sensorData;
+            String sensorData = sensorReader.readLine();  // Ignore header row
             while ((sensorData = sensorReader.readLine()) != null && !StringUtils.isBlank(sensorData)) {
                 SensorDatalog sensorDatalog = SensorDatalog.parseData(sensorData);
                 if (!deviceDatalogs.containsKey(sensorDatalog.getDeviceDatalogId()))
