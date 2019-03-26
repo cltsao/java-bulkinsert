@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DeviceDatalog extends DatalogBase {
-    List<SensorDatalog> sensorDatalogs = new ArrayList<SensorDatalog>();
+    public List<SensorDatalog> sensorDatalogs = new ArrayList<SensorDatalog>();
 
     /**
      * In production, DeviceDatalog is parsed from EventLog. For this POC, it is just parsed from the exported CSV since we will store data as CSV for bulk insert.

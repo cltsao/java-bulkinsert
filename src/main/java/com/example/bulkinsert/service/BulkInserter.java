@@ -1,12 +1,11 @@
 package com.example.bulkinsert.service;
 
 import com.example.bulkinsert.model.DeviceDatalog;
+import com.example.bulkinsert.model.SensorDatalog;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +15,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.sql.*;
 import java.util.Collection;
-import java.util.Queue;
 
 @Component
 public class BulkInserter {
@@ -62,7 +60,7 @@ public class BulkInserter {
     }
 
     // Sample code from https://stackoverflow.com/questions/40471004/can-i-get-bulk-insert-like-speeds-when-inserting-from-java-into-sql-server
-    private void bulkInsertProductsCsv(Connection connection, String fileName, String tableName) throws Exception {
+    private void bulkInsertDeviceDatalogs(Connection connection, String fileName, String tableName) throws Exception {
         SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, false);
         fileRecord.addColumnMetadata(1, null, Types.INTEGER, 0, 0);
         fileRecord.addColumnMetadata(2, null, Types.INTEGER, 0, 0);
@@ -81,23 +79,29 @@ public class BulkInserter {
         bulkCopy.writeToServer(fileRecord);
     }
 
-    private void generateInventoryCsv(String fileName, int firstProductId, int numProducts, int numInventoryPerProduct) throws Exception {
+    private void generateSensorDatalog(String fileName, int firstDeviceDatalogId, Collection<DeviceDatalog> deviceDatalogs) throws Exception {
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-        for (int i = 0; i < numProducts; ++i) {
-            for (int j = 0; j < numInventoryPerProduct; ++j) {
-                int quantity = RandomUtils.nextInt(100);
-                writer.write(", " + (firstProductId + i) + ", " + quantity);
+        int deviceDatalogId = firstDeviceDatalogId;
+        for(DeviceDatalog deviceDatalog : deviceDatalogs) {
+            deviceDatalog.setId(String.valueOf(deviceDatalogId));
+            for(SensorDatalog sensorDatalog : deviceDatalog.sensorDatalogs) {
+                writer.write(sensorDatalog.toCsvString());
                 writer.newLine();
             }
+            ++deviceDatalogId;
         }
         writer.flush();
     }
 
-    private void bulkInsertInventoryCsv(Connection connection, String fileName, String tableName) throws Exception {
+    private void bulkInsertSensorDatalogs(Connection connection, String fileName, String tableName) throws Exception {
         SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, false);
-        fileRecord.addColumnMetadata(1, null, java.sql.Types.INTEGER, 0, 0);
-        fileRecord.addColumnMetadata(2, null, java.sql.Types.INTEGER, 0, 0);
-        fileRecord.addColumnMetadata(3, null, java.sql.Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(1, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(2, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(3, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(4, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(5, null, Types.INTEGER, 0, 0);
+        fileRecord.addColumnMetadata(6, null, Types.FLOAT, 0, 0);
+        fileRecord.addColumnMetadata(7, null, Types.VARBINARY, 0, 0);
         SQLServerBulkCopyOptions copyOptions = new SQLServerBulkCopyOptions();
 
         // Depending on the size of the data being uploaded, and the amount of RAM, an optimum can be found here. Play around with this to improve performance.
@@ -114,10 +118,9 @@ public class BulkInserter {
 
     public void send(Collection<DeviceDatalog> deviceDatalogs) throws Exception {
         generateDeviceDatalogCsv("deviceDatalog.csv", deviceDatalogs);
-        bulkInsertProductsCsv(connection,"deviceDatalog.csv", "FOG_DeviceDatalogRecord");
+        bulkInsertDeviceDatalogs(connection,"deviceDatalog.csv", "FOG_DeviceDatalogRecord");
         int lastPk = getLastPK("FOG_DeviceDatalogRecord", "ID");
-        logger.info("Product PK: from " + (lastPk - deviceDatalogs.size() + 1) + " to " + lastPk);
-        /*generateInventoryCsv("inventory.csv", (lastPk - numProducts + 1), numProducts, numInventoryPerProduct);
-        bulkInsertInventoryCsv(connection, "inventory.csv", "inventory");*/
+        generateSensorDatalog("sensorDatalog.csv", (lastPk - deviceDatalogs.size() + 1), deviceDatalogs);
+        bulkInsertSensorDatalogs(connection, "sensorDatalog.csv", "FOG_SensorDatalogRecord");
     }
 }
