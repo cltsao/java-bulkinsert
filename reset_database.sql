@@ -1,22 +1,2 @@
-DROP TABLE [TestDatabase].[dbo].[inventory];
-DROP TABLE [TestDatabase].[dbo].[products];
-
-CREATE TABLE [TestDatabase].[dbo].[products]
-( product_id INT IDENTITY(1,1) PRIMARY KEY,
-  product_name VARCHAR(50) NOT NULL
-);
-
-CREATE TABLE [TestDatabase].[dbo].[inventory]
-( inventory_id INT IDENTITY(1,1) PRIMARY KEY,
-  product_id INT NOT NULL,
-  quantity INT,
-  CONSTRAINT fk_inv_product_id
-    FOREIGN KEY (product_id)
-    REFERENCES products (product_id)
-);
-
-SELECT name, is_not_trusted FROM [TestDatabase].[sys].[foreign_keys];
-
-SELECT count(product_id) as count, max(product_id) as lastId from [TestDatabase].[dbo].[products];
-
-DELETE from [TestDatabase].[dbo].[products];
+TRUNCATE TABLE SoteraExpress.dbo.FOG_SensorDatalogRecord;
+DELETE FROM SoteraExpress.dbo.FOG_DeviceDatalogRecord;
