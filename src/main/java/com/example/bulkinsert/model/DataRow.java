@@ -1,6 +1,9 @@
 package com.example.bulkinsert.model;
 
-public class DatalogBase {
+/**
+ * A record that can be inserted as a row through bulk insert, which reads the CSV string.
+ */
+public class DataRow {
     String[] fields;
 
     /**

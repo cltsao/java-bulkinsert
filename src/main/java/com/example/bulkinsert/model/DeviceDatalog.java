@@ -3,7 +3,7 @@ package com.example.bulkinsert.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeviceDatalog extends DatalogBase {
+public class DeviceDatalog extends DataRow {
     public List<SensorDatalog> sensorDatalogs = new ArrayList<SensorDatalog>();
 
     /**

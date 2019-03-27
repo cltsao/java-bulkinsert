@@ -1,6 +1,6 @@
 package com.example.bulkinsert.model;
 
-public class SensorDatalog extends DatalogBase {
+public class SensorDatalog extends DataRow {
     /**
      * In production, SensorDatalog is parsed from EventLog. For this POC, it is parsed from the exported CSV.
      */

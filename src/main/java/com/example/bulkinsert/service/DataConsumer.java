@@ -29,8 +29,8 @@ public class DataConsumer {
      * Send datalogs using bulk insert.
      */
     private void sendDatalogs() {
-        BulkInserter.Result result = dataInserter.send(queue);
-        if (result != BulkInserter.Result.SUCCESS)
+        DataInserter.Result result = dataInserter.send(queue);
+        if (result != DataInserter.Result.SUCCESS)
             onError(result);
         queue.clear();
     }
@@ -38,7 +38,7 @@ public class DataConsumer {
     /**
      * Placeholder when error occurs in bulk insert. Fall back to the existing data pipeline.
      */
-    private void onError(BulkInserter.Result result) {
+    private void onError(DataInserter.Result result) {
         logger.warn("Error in sending " + queue.size() + " device datalogs starting from " + queue.peek().getId() + ": " + result);
         switch(result) {
             case DEVICE_DATALOG_FAILED:
