@@ -18,7 +18,7 @@ public class DataConsumer {
     private static final Logger logger = LoggerFactory.getLogger(DataConsumer.class);
 
     @Autowired
-    BulkInserter bulkInserter;
+    DataInserter dataInserter;
 
     @Value("${batch.size}")
     private int batchSize;
@@ -29,7 +29,7 @@ public class DataConsumer {
      * Send datalogs using bulk insert.
      */
     private void sendDatalogs() {
-        BulkInserter.Result result = bulkInserter.send(queue);
+        BulkInserter.Result result = dataInserter.send(queue);
         if (result != BulkInserter.Result.SUCCESS)
             onError(result);
         queue.clear();
@@ -53,7 +53,7 @@ public class DataConsumer {
     private long startTime;
 
     public void init() throws Exception {
-        bulkInserter.init();
+        dataInserter.init();
         startTime = System.currentTimeMillis();
     }
 

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -33,6 +32,9 @@ public class DataProducer {
 
     private SortedMap<String, DeviceDatalog> deviceDatalogs = new TreeMap<>();
 
+    /**
+     * This represents that a DeviceDatalog that contains a set of SensorDatalog is parsed from binary data and is ready to store to DB.
+     */
     private void onProducing(DeviceDatalog deviceDatalog) {
         datalogConsumer.consume(deviceDatalog);
     }
@@ -66,8 +68,8 @@ public class DataProducer {
     public void start() throws Exception {
         loadData();
         datalogConsumer.init();
-        for(String deviceDatalogId : deviceDatalogs.keySet()) {
-            datalogConsumer.consume(deviceDatalogs.get(deviceDatalogId));
+        for (String deviceDatalogId : deviceDatalogs.keySet()) {
+            onProducing(deviceDatalogs.get(deviceDatalogId));
         }
         datalogConsumer.flush();
     }
