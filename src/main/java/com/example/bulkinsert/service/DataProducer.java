@@ -2,12 +2,12 @@ package com.example.bulkinsert.service;
 
 import com.example.bulkinsert.model.DeviceDatalog;
 import com.example.bulkinsert.model.SensorDatalog;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -44,13 +44,13 @@ public class DataProducer {
         try (BufferedReader deviceReader = new BufferedReader(new FileReader(deviceDataInput));
              BufferedReader sensorReader = new BufferedReader(new FileReader(sensorDataInput))) {
             String deviceData = deviceReader.readLine();  // Ignore header row
-            while ((deviceData = deviceReader.readLine()) != null && !StringUtils.isBlank(deviceData)) {
+            while ((deviceData = deviceReader.readLine()) != null && !StringUtils.isEmpty(deviceData)) {
                 DeviceDatalog deviceDatalog = DeviceDatalog.parseData(deviceData);
                 deviceDatalogs.put(deviceDatalog.getId(), deviceDatalog);
             }
 
             String sensorData = sensorReader.readLine();  // Ignore header row
-            while ((sensorData = sensorReader.readLine()) != null && !StringUtils.isBlank(sensorData)) {
+            while ((sensorData = sensorReader.readLine()) != null && !StringUtils.isEmpty(sensorData)) {
                 SensorDatalog sensorDatalog = SensorDatalog.parseData(sensorData);
                 if (!deviceDatalogs.containsKey(sensorDatalog.getDeviceDatalogId()))
                     logger.warn("No device datalog with ID " + sensorDatalog.getDeviceDatalogId());

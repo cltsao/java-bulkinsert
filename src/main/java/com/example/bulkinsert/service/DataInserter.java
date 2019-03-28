@@ -35,10 +35,14 @@ public class DataInserter {
      * Need to distinguish exception when inserting device datalogs or sensor datalogs, then notify the data consumer to fall back to original data pineline only for the failed dataset to avoid duplication.
      */
     public Result send(Collection<DeviceDatalog> deviceDatalogs) {
-        int lastPk = -1;
         try {
             int[] dataTypes = {Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.DATE, Types.INTEGER, Types.VARBINARY};
-            lastPk = bulkInserter.bulkInsert(deviceDatalogs.stream(), dataTypes, "FOG_DeviceDatalogRecord", "ID");
+            int lastPk = bulkInserter.bulkInsert(deviceDatalogs.stream(), dataTypes, "FOG_DeviceDatalogRecord", "ID");
+            int pk = lastPk - deviceDatalogs.size() + 1;
+            for(DeviceDatalog deviceDatalog : deviceDatalogs) {
+                deviceDatalog.setId(String.valueOf(pk));
+                ++pk;
+            }
         } catch (Exception ex) {
             logger.warn("Bulk insert of device datalog failed", ex);
             return Result.DEVICE_DATALOG_FAILED;

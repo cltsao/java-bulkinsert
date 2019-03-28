@@ -5,14 +5,14 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -115,6 +115,52 @@ public class BulkInserter {
         bulkInsertFromFile(fileName, dataTypes, tableName);
     }
 
+    private <T extends DataRow> InputStream generateCsvInputStream(Stream<T> rows) throws IOException {
+        PipedInputStream pipedInputStream = new PipedInputStream();
+        PipedOutputStream pipedOutputStream = new PipedOutputStream();
+        pipedInputStream.connect(pipedOutputStream);
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(pipedOutputStream));
+        Thread dataWriter = new Thread(() -> {
+            try {
+                rows.forEachOrdered(throwingConsumerWrapper(row -> {
+                    writer.write(row.toCsvString());
+                    writer.newLine();
+                }));
+
+                writer.flush();
+                pipedOutputStream.close();
+                logger.info("Finished writing CSV content to piped stream");
+            } catch (Exception ex) {
+                logger.warn("Exception in writing to piped stream", ex);
+            }
+        });
+        dataWriter.start();
+        return pipedInputStream;
+    }
+
+    // Sample code from https://myadventuresincoding.wordpress.com/2018/04/01/java-using-sqlserverbulkcopy-in-java-with-an-inputstream/
+    private void bulkInsertFromInputStream(InputStream inputStream, int[] dataTypes, String tableName) throws Exception {
+        SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(inputStream, StandardCharsets.UTF_8.name(), ",", false);
+        setColumnMetadata(fileRecord, dataTypes);
+
+        SQLServerBulkCopyOptions copyOptions = new SQLServerBulkCopyOptions();
+
+        // This is crucial to get good performance
+        copyOptions.setTableLock(true);
+
+        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection);
+        bulkCopy.setBulkCopyOptions(copyOptions);
+        bulkCopy.setDestinationTableName(tableName);
+        bulkCopy.writeToServer(fileRecord);
+        logger.info("Finished bulk insert");
+    }
+
+    private <T extends DataRow> void doBulkInsertWithPipedStream(Stream<T> rows, int[] dataTypes, String tableName) throws Exception {
+        InputStream inputStream = generateCsvInputStream(rows);
+        bulkInsertFromInputStream(inputStream, dataTypes, tableName);
+        inputStream.close();
+    }
+
     /**
      * Performs bulk insert.
      *
@@ -125,7 +171,8 @@ public class BulkInserter {
      * @throws Exception
      */
     public <T extends DataRow> int bulkInsert(Stream<T> rows, int[] dataTypes, String tableName, String pkName) throws Exception {
-        doBulkInsertWithCsvFile(rows, dataTypes, tableName);
+        // doBulkInsertWithCsvFile(rows, dataTypes, tableName);
+        doBulkInsertWithPipedStream(rows, dataTypes, tableName);
         return getLastPK(tableName, pkName);
     }
 }
