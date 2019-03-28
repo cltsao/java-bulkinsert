@@ -129,7 +129,7 @@ public class BulkInserter {
 
                 writer.flush();
                 pipedOutputStream.close();
-                logger.info("Finished writing CSV content to piped stream");
+                // logger.info("Finished writing CSV content to piped stream");
             } catch (Exception ex) {
                 logger.warn("Exception in writing to piped stream", ex);
             }
@@ -152,7 +152,7 @@ public class BulkInserter {
         bulkCopy.setBulkCopyOptions(copyOptions);
         bulkCopy.setDestinationTableName(tableName);
         bulkCopy.writeToServer(fileRecord);
-        logger.info("Finished bulk insert");
+        // logger.info("Finished bulk insert");
     }
 
     private <T extends DataRow> void doBulkInsertWithPipedStream(Stream<T> rows, int[] dataTypes, String tableName) throws Exception {
@@ -171,8 +171,8 @@ public class BulkInserter {
      * @throws Exception
      */
     public <T extends DataRow> int bulkInsert(Stream<T> rows, int[] dataTypes, String tableName, String pkName) throws Exception {
-        // doBulkInsertWithCsvFile(rows, dataTypes, tableName);
-        doBulkInsertWithPipedStream(rows, dataTypes, tableName);
+        doBulkInsertWithCsvFile(rows, dataTypes, tableName);
+        // doBulkInsertWithPipedStream(rows, dataTypes, tableName);
         return getLastPK(tableName, pkName);
     }
 }
